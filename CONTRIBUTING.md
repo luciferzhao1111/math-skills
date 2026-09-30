@@ -63,3 +63,31 @@ cd ../math-grader            && python3 scripts/make_detail.py examples/detail.e
 cd ../math-mastery-scheduler && python3 scripts/scheduler.py selftest; echo "⑤ $?  (期望 0)"
 cd ../math-knowledge-atlas   && python3 scripts/atlas.py selftest;     echo "⑥ $?  (期望 0)"
 cd ../math-curriculum-ingest && python3 scripts/ingest.py selftest;    echo "⑦ $?  (期望 0)"
+```
+
+**七项全绿才算过。** 改动 `ws.py`、`gate_lib.py` 这类共用件时，尤其不能漏。
+
+---
+
+## 五、版权红线（**违反的 PR 会被拒**）
+
+- **教材**：不得提交教材原文、例题、章节内容。
+- **真题**：不得复制题干；**只允许写成"锚点"**（出处标识）。
+- **示例数据必须是虚构的**，且不得与真实题目雷同。
+- 第三方来源的代码/技能，**必须注明来源与许可证**，且**不得连带发布**未经授权的部分。
+
+> 本仓库的定位是**工具与规则**，不是题库。请让数据留在使用者自己手里。
+
+---
+
+## 六、风格
+
+- 默认**中文**注释与文档。
+- 面向读者写：假设读者是**第一次用**，把"为什么这么做"讲清楚（本仓库的文档都带"事故来源"）。
+- 不追求功能多，追求**每一步都能被验证**。
+
+---
+
+## 七、许可
+
+提交贡献即表示你同意你的贡献以本仓库的 [MIT 许可证](LICENSE) 发布。
