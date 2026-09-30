@@ -1,0 +1,27 @@
+
+### ② `.github/ISSUE_TEMPLATE/bug_report.md`
+
+```markdown
+---
+name: Bug 报告
+about: 某个脚本跑不通 / 某条规则写错了 / 示例数据对不上
+title: "[Bug] "
+---
+
+## 你跑了什么命令
+
+## 结果
+
+- **退出码**：`exit=`
+- 输出：
+
+> ⚠️ 请贴**退出码**，不要只贴输出里的"绿字"。本仓库所有脚本以退出码为准，
+> 用管道（`| grep ...`）会吞掉退出码。
+
+## 期望是什么
+
+## 环境
+
+- 操作系统：
+- Python 版本：
+- `reportlab` / `matplotlib` / `sympy` / `PyMuPDF` 版本（如相关）：
