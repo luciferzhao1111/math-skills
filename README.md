@@ -20,7 +20,7 @@
 ## 5 分钟跑通
 
 ```bash
-git clone <this-repo> math-skills && cd math-skills/math-paper-forge
+git clone https://github.com/luciferzhao1111/math-skills.git && cd math-skills/math-paper-forge
 
 # ① 闸门应当放行一套合规的卷子
 MATH_SKILLS_WS=examples/minimal python3 scripts/gate_check.py --all > /tmp/a.log 2>&1; echo "exit=$?"
