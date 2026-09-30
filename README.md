@@ -14,13 +14,15 @@
 |---|---|
 | [`math-paper-forge`](math-paper-forge/) | 题库 → 可打印试卷 PDF（真数学排版）＋ 出卷硬红线校验（闸门） |
 | [`math-grader`](math-grader/) | 学生作答 → 辨错确认单 → 错题详解 PDF（第一屏总览 ＋ 详版） |
-
-（后续：`math-mastery-scheduler` 掌握度调度、`math-knowledge-atlas` 知识地图、`math-curriculum-ingest` 题库导入与母题提炼）
+| [`math-mastery-scheduler`](math-mastery-scheduler/) | 按四档证据算升档／冻结／补台阶，并排出下次复现的时间与题型 |
+| [`math-knowledge-atlas`](math-knowledge-atlas/) | 把考点关系织成**可校验**的图（查环 / 拓扑分层 / 追前置链 / 出 mermaid 图） |
+| [`math-curriculum-ingest`](math-curriculum-ingest/) | 题库导入 → **粗聚类** → 产出复核模板（**母题定稿仍须人工，不做全自动**） |
 
 ## 5 分钟跑通
 
 ```bash
-git clone https://github.com/luciferzhao1111/math-skills.git && cd math-skills/math-paper-forge
+git clone https://github.com/luciferzhao1111/math-skills.git
+cd math-skills/math-paper-forge
 
 # ① 闸门应当放行一套合规的卷子
 MATH_SKILLS_WS=examples/minimal python3 scripts/gate_check.py --all > /tmp/a.log 2>&1; echo "exit=$?"
@@ -34,6 +36,20 @@ MATH_SKILLS_WS=examples/violation python3 scripts/gate_check.py --all > /tmp/b.l
 cd ../math-grader
 python3 scripts/make_detail.py examples/detail.example.json /tmp/详解.pdf > /tmp/c.log 2>&1; echo "exit=$?"
 python3 scripts/check_pdf.py /tmp/详解.pdf       # → ✅ 无缺字 / 无空白页
+
+# ④ 调度：跑内置规则自检（验证"连对2次不升档"等 10 条硬规则）
+cd ../math-mastery-scheduler
+python3 scripts/scheduler.py selftest            # → ✅ 全部通过（10 项）
+python3 scripts/scheduler.py examples/state.example.json review
+
+# ⑤ 知识地图：校验图 + 追前置链
+cd ../math-knowledge-atlas
+python3 scripts/atlas.py examples/atlas.example.json validate   # → ✅ 无环
+python3 scripts/atlas.py examples/atlas.example.json path K-二次函数
+
+# ⑥ 题库导入：粗聚类（输出候选，需人工定稿）
+cd ../math-curriculum-ingest
+python3 scripts/ingest.py examples/raw --out /tmp/clusters.json --report /tmp/clusters.md
 ```
 
 > **看退出码，不要看输出里的"绿字"。** 出卷/生成命令一律
@@ -45,8 +61,11 @@ python3 scripts/check_pdf.py /tmp/详解.pdf       # → ✅ 无缺字 / 无空�
 ### Claude Code / Codex / Cursor / VS Code（读 `.claude/skills/` 或其等价目录）
 
 ```bash
-cp -r math-skills/math-paper-forge ~/.claude/skills/
-cp -r math-skills/math-grader     ~/.claude/skills/
+cp -r math-skills/math-paper-forge       ~/.claude/skills/
+cp -r math-skills/math-grader            ~/.claude/skills/
+cp -r math-skills/math-mastery-scheduler ~/.claude/skills/
+cp -r math-skills/math-knowledge-atlas   ~/.claude/skills/
+cp -r math-skills/math-curriculum-ingest ~/.claude/skills/
 ```
 
 ### 腾讯 WorkBuddy（读 `.workbuddy/skills/`）

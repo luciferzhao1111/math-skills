@@ -1,0 +1,46 @@
+{
+  "topics": {
+    "M-代数-01": {
+      "name": "一元二次方程·因式分解",
+      "level": 2,
+      "target_level": 3,
+      "streak": 2,
+      "probe_started": true,
+      "probe_passed": false,
+      "wrong_concept_this_level": 0,
+      "e1_passed": true,
+      "repeats": 1,
+      "last_seen": "2025-03-05",
+      "evidence": {"E2": true, "E3": false, "E4": false},
+      "history": [],
+      "note": "连对 2 次已进入探测；探测未过，且缺 E3/E4 —— 不应升档"
+    },
+    "M-几何-01": {
+      "name": "直角三角形·勾股定理",
+      "level": 1,
+      "target_level": 2,
+      "streak": 0,
+      "wrong_concept_this_level": 1,
+      "ever_wrong": true,
+      "e1_passed": false,
+      "repeats": 0,
+      "last_seen": "2025-03-05",
+      "evidence": {},
+      "history": [],
+      "note": "本档出现过概念错、连对清零 → 待补台阶"
+    },
+    "M-概率-01": {
+      "name": "古典概型·取球",
+      "level": 3,
+      "target_level": 3,
+      "streak": 3,
+      "wrong_concept_this_level": 0,
+      "e1_passed": true,
+      "repeats": 2,
+      "last_seen": "2025-02-20",
+      "evidence": {"E2": true, "E3": true, "E4": true},
+      "history": [],
+      "note": "达标档 ＋ 连对≥3 ＋ 三证据齐 → 已掌握（销号）"
+    }
+  }
+}
