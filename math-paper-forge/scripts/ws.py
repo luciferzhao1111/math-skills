@@ -254,8 +254,11 @@ def styles(body=12.5, lead=24, mfs=13):
     S['lab'] = ParagraphStyle('lab', parent=ss['Normal'], fontName='CNB', fontSize=body, leading=lead, textColor=colors.HexColor('#C00000'), spaceAfter=5)
     S['ok'] = ParagraphStyle('ok', parent=ss['Normal'], fontName='CNB', fontSize=body, leading=lead, textColor=colors.HexColor('#1F7A1F'), spaceAfter=5)
     S['tag'] = ParagraphStyle('tag', parent=ss['Normal'], fontName='CNB', fontSize=10.5, leading=18, textColor=colors.HexColor('#B26A00'), spaceAfter=6)
-    # 选择题选项：各自独立一行，悬挂缩进 2 字符（≈25pt），行距保护
+    # 选择题选项（旧口径：各占一行，悬挂缩进 2 字符）——保留以兼容旧稿
     S['opt'] = ParagraphStyle('opt', parent=S['body'], leftIndent=25, spaceAfter=2)
+    # 选择题选项（新口径：自适应 4/2/1，缩进由栅格的空列给出，单元格本身不缩进）
+    S['optc'] = ParagraphStyle('optc', parent=S['body'], fontSize=12.0, leading=20,
+                               spaceBefore=0, spaceAfter=0)
     return S
 
 
@@ -470,6 +473,73 @@ class LinedCanvas(Flowable):
         while y > 0:
             c.line(0, y, self.width, y)
             y -= self.gap
+
+
+def opt_flows(opts, fs=12.0, max_h=20.0, width=None, gap=16.0, indent=25.0):
+    """选择题选项**自适应排布**（按渲染宽度实测，2026-10-10 实装）。
+
+    判据＝**渲染宽度实测**：取最宽的选项为 m（用与渲染同一套字体量宽），
+        ① m×4 + gap×3 ≤ 可用宽  → 一行 4 个；
+        ② m×2 + gap    ≤ 可用宽  → 一行 2 个；
+        ③ 否则                   → 一行 1 个（列宽＝整行宽，长选项自然换行）。
+    可用宽 = 版心宽 − 悬挂缩进(≈2 字符)，整块与题干左对齐。
+    承载用**无框栅格**（Table 不画线）→ 没有可见线，就不可能"公式骑线"。
+    列宽取 m+gap（末列 m）→ **最宽的选项也必然不换行**。
+
+    返回 flowable 列表（单个 Table）。
+
+    ⚠️ 两条踩坑教训（改这里前务必先读）：
+      ① 量宽度要用 `_atoms` 量**原始文本**（`$…$` 形态）——公式一旦转成 `<img>`，
+         `_atoms` 会按 **0 宽**算（`<标签>` 分支宽度记 0），于是最高/最宽项被严重低估。
+      ② 列宽要按 `fit_lines` 的**悬挂预算**反推（`budget = width − min(fs*1.25, 0.09*width)`）——
+         fit_lines 预排时会主动窄掉一个字做标点悬挂，故列宽若只取"刚好等于内容宽"，
+         会被 fit_lines 判为放不下而折行（实测踩过）。
+    """
+    from reportlab.platypus import Table as _T, TableStyle as _TS
+    from reportlab.lib.styles import getSampleStyleSheet as _gss, ParagraphStyle as _PS
+    avail = (width or TEXT_W) - indent
+    # 本函数在 ws.py 内部，不能依赖调用方的 S；样式就地构造（与正文同字体、行距护住行内公式图）
+    _st = _PS('optcell', parent=_gss()['Normal'], fontName='CN', fontSize=fs,
+              leading=max(20.0, float(max_h or 20.0) + 2.0), spaceBefore=0, spaceAfter=0)
+
+    def _cell(txt, tw):
+        return Paragraph(P(fit_lines(glue_nb(txt), tw, fs, max_h), fs=fs, max_h=max_h), _st)
+
+    # 第一遍：按**原子宽和**实测内容宽（传**原始**文本：$…$ 才量得到宽，转成 <img> 后按 0 宽算）
+    # 注意①：Paragraph.wrap() 返回的是「可用宽度」而不是自然宽，不能用。
+    # 注意②：fit_lines 的预排宽度 budget 要**预留一个字**做标点悬挂
+    #        （budget = width − min(fs·1.25, 0.09·width)），故列宽须按此反推，
+    #        否则「预算刚好」会被 fit_lines 判为放不下而折行（实测踩过）。
+    S = max([sum(w for _, w, _ in _atoms(o, fs, max_h)) for o in opts] or [0.0])
+    m = S / 0.91
+    if 0.09 * m > fs * 1.25:
+        m = S + fs * 1.25
+    m += 0.5
+    if m > avail:
+        m = avail
+    n = 4 if m * 4 + gap * 3 <= avail else (2 if m * 2 + gap <= avail else 1)
+    if n == 1:
+        m = avail                       # 单列＝整行宽，长选项自然折行
+    tw = m                              # 每格文本宽（n≥2 时最宽也放得下，不折行）
+
+    # 第二遍：按定宽重建（fit_lines 会做中文禁则）
+    cells = [_cell(o, tw) for o in opts]
+    blank = Paragraph('', _st)
+    colw = [indent] + [m + gap] * (n - 1) + [m]
+    rows = []
+    for i in range(0, len(cells), n):                      # 每行：缩进占位格 + n 个选项格
+        chunk = cells[i:i + n] + [blank] * (n - len(cells[i:i + n]))
+        rows.append([blank] + chunk)
+    t = _T(rows, colWidths=colw)
+    t.setStyle(_TS([('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (0, -1), 0),      # 缩进列不留 gap
+                    ('RIGHTPADDING', (1, 0), (-2, -1), gap),   # 各选项后留 gap
+                    ('RIGHTPADDING', (-1, 0), (-1, -1), 0),    # 末列不留
+                    ('TOPPADDING', (0, 0), (-1, -1), 1),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+    t.hAlign = 'LEFT'
+    return [t]
 
 
 def measure(flows, width=PAGE_W):

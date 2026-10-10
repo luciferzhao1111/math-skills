@@ -58,6 +58,10 @@ python3 scripts/ingest.py examples/raw --out /tmp/clusters.json --report /tmp/cl
 > `python3 xxx.py > log 2>&1; echo "exit=$?"` —— 用管道（`| grep 放行`）会**吞掉退出码**，
 > 脚本早已报错、你却看到上一次成功的输出。
 
+## 更新日志
+
+- **2026-10-10** —— `math-paper-forge` 出卷闸门扩到 **G0–G9**（新增 **G0b** 卷号复用、**G7** 卷面配图合规、**G8**「复现」标注与事实一致、**G9** 公式内中文）；选择题选项改为**自适应排布**（短选项一行 4 个、中等 2 个、长选项 1 个），由 `scripts/ws.py` 新增的 `ws.opt_flows()` 实装（无框栅格，按渲染宽度实测分档）。
+
 ## 安装
 
 ### Claude Code / Codex / Cursor / VS Code（读 `.claude/skills/` 或其等价目录）

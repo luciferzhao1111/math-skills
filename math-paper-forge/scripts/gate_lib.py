@@ -10,6 +10,7 @@
   - 考点分组标签（如 `M-xxx-01`）：**文字，可靠**。
   - 题干：结构化 json 里含 LaTeX（**可靠**）；从 PDF 提取时公式拿不到（**有损**）。
     因此题干相似度只作"疑似原题"提示，**分档处理**，不一律一票否决。
+  - 题目**性质** `st`（攻坚／复现…）：结构化 json 里的可选字段，供 G8 核对「复现」标注真假。
 
 【间隔口径 —— 重要】
   「复现间隔」按**卷序号**算，不按日历日期。学生一天做三份卷是常事；
@@ -62,6 +63,16 @@ for _p in PAPERS:
     if _p[2]:
         _DATE2PAPERS.setdefault(_p[2], []).append(_p[0])
 
+# ---- 作废卷号登记（立规：作废卷号不得再分配）----
+# 规矩：**作废的卷号不得再分配给新卷**，新卷一律**顺延取号**；否则会出现「同名两卷」，
+# 让留档、台账、闸门时间线互相打架。处置：把作废卷的 json/pdf 移出 `papers/`（归档），
+# 并把卷号登记在这里 —— gate_check 的 **G0b** 会据此拦截「作废号被复用」。
+# 形式：[('卷号', '作废原因'), ...]。
+# 仓库为通用版，默认留空（不含任何具体卷号）；使用者按自己的卷号纪律填写。
+RETIRED = [
+    # ('R1', '示例：2025-04-01 出、一套未做，2025-04-02 作废'),
+]
+
 
 def pdf_text(fname):
     if not fname:
@@ -87,7 +98,7 @@ def stem_similarity(a, b):
 
 
 def parse_paper(paper_id, fname=None):
-    """解析一份卷：返回 {题号: {'m': 分组标签, 'tag': 标签, 'stem': 题干, 'op': 算子}}。
+    """解析一份卷：返回 {题号: {'m': 分组标签, 'tag': 标签, 'stem': 题干, 'op': 算子, 'st': 性质}}。
 
     **优先读结构化数据** `papers/<卷号>.json`（题干含公式源码 → 查重可靠）；
     没有 json 的旧卷，退回从 PDF 文本提取（公式是图片，**有损**）。
@@ -98,7 +109,8 @@ def parse_paper(paper_id, fname=None):
         out = {}
         for k, v in d.get('items', {}).items():
             out[k] = {'m': v.get('m'), 'tag': v.get('tag', '(结构化)'),
-                      'stem': v.get('stem', ''), 'op': v.get('op'), 'ans': v.get('ans')}
+                      'stem': v.get('stem', ''), 'op': v.get('op'), 'ans': v.get('ans'),
+                      'st': v.get('st')}   # st＝性质（攻坚/复现…），G8 据此核对「复现」标注
         return out
     if fname is None:
         fname = next((f for p, f, _ in PAPERS if p == paper_id), None)
