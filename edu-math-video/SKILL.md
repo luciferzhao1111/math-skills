@@ -28,6 +28,8 @@ anim.js + engine.js ◄───────────────────
 
 ## 必须遵守的规则
 
+0. **先定门槛，再写脚本。** 讲题视频是**处置阶梯的末档**：只有当「孩子讲给家长听」仍无效时才启用；**每周 ≤1 个**；只做「动起来才看得懂」的考点（几何变换/函数图像/圆锥曲线/立体展开），**纯代数技巧不做视频**。交付物首先是**自包含的口播稿 md**（事实底稿 7 项 ＋ 幕×句三列表），结构自检 `check_lecture.py` 不过不得交付。结构与四条铁律见 [reference/lecture-script-spec.md](reference/lecture-script-spec.md)。
+
 **退出码不是 0 就是没完成。** `--check` 退出码 1（哪怕只剩一个 ⚠ 多音字）、`motion` 退出码 1、截图里有问题，都不能写"只是警告、不影响"然后继续。修好再往下走。
 
 1. **严格按下面 10 步顺序做，每步的"通过标准"满足了才能进入下一步。** 不要跳步，不要"最后一起检查"。
@@ -153,6 +155,7 @@ cd PROJ && node render.mjs video 6      # 6 = 并行浏览器页数（不是帧�
 | 一句旁白塞三四个知识点 | 一句一个点，画面同步出现一个元素 |
 
 ## 参考文件
+- [reference/lecture-script-spec.md](reference/lecture-script-spec.md)：**脚本规范 v4.19**——使用门槛（末档/每周≤1）、事实底稿 7 项、幕×句三列表、四条铁律（起手动作显式/数值全脚本算/口诀易错检验三件套/口播无符号）、10 幕 35 句参数、五个必踩的坑（字幕下标方框/别全片推近/立体图逐帧重算/叠加坐标/压体积）、版面骨架、交付前 7 项检查。**写稿前必读。**
 - [reference/glm-tts-setup.md](reference/glm-tts-setup.md)：智谱 GLM-TTS 注册、API Key、`.env`、音色、语速、报错处理。**引导用户配置时读这个。**
 - [reference/script-writing.md](reference/script-writing.md)：`script.json` 格式、幕的设计、数学式子的口语写法对照表。
 - [reference/pronunciation.md](reference/pronunciation.md)：读音控制原理、标注语法、`pron.json`、数学常见多音字。

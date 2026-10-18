@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """数学试卷排版引擎（真数学排版 + 大字体 + 中文禁则 + 公式行距保护）
 
-独立可用：不依赖任何具体题库/学段。中文字体名可在 CJK_FONT 处修改。
+独立可用：不依赖任何具体题库/学段。中文字体路径见下方 CN/CNB 注册处，可自行改。
 """
 import os, re, hashlib
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['mathtext.fontset'] = 'cm'   # 公式字体＝Computer Modern（LaTeX 经典教学风；2026-10-16 采纳，与 math-figure 配图 mplfig.py 对齐）
 import matplotlib.pyplot as plt
 from PIL import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -32,10 +33,10 @@ for n, p in [('CN', '/usr/local/share/fonts/custom/NotoSansSC-Regular.ttf'),
 # 行内公式字号：13pt（配 24pt 行距，公式图片最高约 23pt < 24，保证不挤上一行）
 _CACHE = {}
 def mimg(tex, fs=13, max_w=440.0, max_h=None):
-    """渲染数学公式。max_w＝版心最大宽度(pt)，超宽则等比缩小，防止撑出页边。
+    r"""渲染数学公式。max_w＝版心最大宽度(pt)，超宽则等比缩小，防止撑出页边。
 
     max_h＝**最大高度(pt)**：行内公式图的高度必须 < 所在行的 leading，否则会
-    骑到上一行/下一行（实测：竖排大分式可达 34pt，而正文 leading 只有 24pt）。
+    骑到上一行/下一行（实测：`\dfrac` 竖排分式可达 34pt，而正文 leading 只有 24pt）。
     给了 max_h 就按等比缩到不超过它——**这是"公式骑线"的结构性解法**。
     """
     key = hashlib.md5((str(fs) + tex + str(max_w) + str(max_h)).encode()).hexdigest()
@@ -256,7 +257,7 @@ def styles(body=12.5, lead=24, mfs=13):
     S['tag'] = ParagraphStyle('tag', parent=ss['Normal'], fontName='CNB', fontSize=10.5, leading=18, textColor=colors.HexColor('#B26A00'), spaceAfter=6)
     # 选择题选项（旧口径：各占一行，悬挂缩进 2 字符）——保留以兼容旧稿
     S['opt'] = ParagraphStyle('opt', parent=S['body'], leftIndent=25, spaceAfter=2)
-    # 选择题选项（新口径：自适应 4/2/1，缩进由栅格的空列给出，单元格本身不缩进）
+    # 选择题选项（新口径 §8 第13条：自适应 4/2/1，缩进由栅格的空列给出，单元格本身不缩进）
     S['optc'] = ParagraphStyle('optc', parent=S['body'], fontSize=12.0, leading=20,
                                spaceBefore=0, spaceAfter=0)
     return S
@@ -361,7 +362,9 @@ def glue_nb(t):
 def fill(n=4):
     """填空题的横线：**按答案长度留足**（返回全角下划线）。
 
-    经验值（v4.4 上调一档）：1-2 字符 -> n=6；3-5 字符（分数/根号/正负号）-> n=8；含范围/不等式（如 c>-10）-> n=10。
+    经验值：1-2 字符 -> n=6；3-5 字符（分数/根号/正负号）-> n=8；含范围/不等式（如 c>-10）-> n=10。
+    10/11 起**不再"上调一档"**：出卷脚本用 `fill_fit()` 包一道，横线会自动**收短到本行放得下**
+    （下限 6 字），避免整条横线被挤到下一行、白吃一行（用户 2026-10-11 反馈）。
     注意：填空题**只**用横线作答，**下面不要再加 write_area**（那是解答题/说明理由题才用的）。
     """
     return '\uff3f' * int(n)
@@ -375,6 +378,29 @@ def choice_box(n=10):
     题干里横线前必须印明「**填选项字母**」。
     """
     return '\uff3f' * int(n)
+
+
+def fill_fit(t, fs=12.5, max_h=21.0, floor=6):
+    """把题干里的作答横线**收短到「本行放得下」的长度**，避免横线整块换行、白吃一行。
+
+    用户 2026-10-11 反馈：填空题 1/2/3 的横线明明可以短一点接到上一行，结果被挤成独立一行，
+    一页凭空少排一道题（第 5 题因此被顶到第 2 页）。
+    **新口径**：横线**按答案留足即可**（不再一律"上调一档"）；若本行放不下，**先收短**；
+    收到 floor（默认 6 字）仍放不下，才保留原长、整条换行（宁换行，也不留写不下答案的短线）。
+    """
+    if '＿' not in t:
+        return t
+    budget = TEXT_W - min(fs * 1.25, 0.09 * TEXT_W)      # 与 fit_lines 同一预算口径
+    unit = stringWidth('＿', 'CN', fs)
+    res, prev = '', 0
+    for mm in _re.finditer(r'＿+', t):
+        head, run = res + t[prev:mm.start()], mm.group(0)
+        last = fit_lines(head, TEXT_W, fs, max_h).split('<br/>')[-1]
+        used = sum(a[1] for a in _atoms(last, fs, max_h))
+        n = int((budget - used) // unit)
+        res = head + (run[:n] if n >= min(floor, len(run)) else run)
+        prev = mm.end()
+    return res + t[prev:]
 
 
 def write_area(story, lines=3, gap=26, dotted=False):
@@ -476,7 +502,7 @@ class LinedCanvas(Flowable):
 
 
 def opt_flows(opts, fs=12.0, max_h=20.0, width=None, gap=16.0, indent=25.0):
-    """选择题选项**自适应排布**（按渲染宽度实测，2026-10-10 实装）。
+    """选择题选项**自适应排布**（§8 第13条 · 2026-10-10 实装）。
 
     判据＝**渲染宽度实测**：取最宽的选项为 m（用与渲染同一套字体量宽），
         ① m×4 + gap×3 ≤ 可用宽  → 一行 4 个；
@@ -487,13 +513,6 @@ def opt_flows(opts, fs=12.0, max_h=20.0, width=None, gap=16.0, indent=25.0):
     列宽取 m+gap（末列 m）→ **最宽的选项也必然不换行**。
 
     返回 flowable 列表（单个 Table）。
-
-    ⚠️ 两条踩坑教训（改这里前务必先读）：
-      ① 量宽度要用 `_atoms` 量**原始文本**（`$…$` 形态）——公式一旦转成 `<img>`，
-         `_atoms` 会按 **0 宽**算（`<标签>` 分支宽度记 0），于是最高/最宽项被严重低估。
-      ② 列宽要按 `fit_lines` 的**悬挂预算**反推（`budget = width − min(fs*1.25, 0.09*width)`）——
-         fit_lines 预排时会主动窄掉一个字做标点悬挂，故列宽若只取"刚好等于内容宽"，
-         会被 fit_lines 判为放不下而折行（实测踩过）。
     """
     from reportlab.platypus import Table as _T, TableStyle as _TS
     from reportlab.lib.styles import getSampleStyleSheet as _gss, ParagraphStyle as _PS
