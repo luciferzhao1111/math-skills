@@ -56,8 +56,8 @@ bad = ParagraphStyle('bad', parent=body, fontSize=11.5, leading=23,
                      textColor=colors.HexColor('#b03030'), spaceAfter=2)
 good = ParagraphStyle('good', parent=body, fontSize=11.5, leading=23,
                       textColor=colors.HexColor('#1e7a4d'), spaceAfter=2)
-tbx = ParagraphStyle('tbx', parent=body, fontSize=9.6, leading=15.0, spaceAfter=0)
-tbh = ParagraphStyle('tbh', parent=tbx, fontName='CNB', fontSize=9.6, leading=14.5)
+tbx = ParagraphStyle('tbx', parent=body, fontSize=9.2, leading=13.4, spaceAfter=0)
+tbh = ParagraphStyle('tbh', parent=tbx, fontName='CNB', fontSize=9.2, leading=13.0)
 ORANGE = colors.HexColor('#8a4a00')
 REDC = colors.HexColor('#b03030')
 GREEN = colors.HexColor('#1e7a4d')
@@ -89,12 +89,12 @@ def fig(p, w=13.2, max_h=6.6):
 
 
 def card(title, rows):
-    col = [1.85 * cm, TEXT_W - 1.85 * cm]
-    data = [[Paragraph(P('<b>%s</b>' % title, fs=9.6, max_h=15.4), tbh), '']]
+    col = [2.15 * cm, TEXT_W - 2.15 * cm]
+    data = [[Paragraph(P('<b>%s</b>' % title, fs=9.2, max_h=13.2), tbh), '']]
     for lab, txt, colr in rows:
         data.append([Paragraph(lab, tbh),
-                     Paragraph(P(fit_lines(glue_nb(str(txt)), col[1] - 8.0, 9.8, 15.4),
-                                 fs=9.8, max_h=15.4),
+                     Paragraph(P(fit_lines(glue_nb(str(txt)), col[1] - 8.0, 9.2, 13.2),
+                                 fs=9.2, max_h=13.2),
                                ParagraphStyle('c', parent=tbx, textColor=colr))])
     t = Table(data, colWidths=col)
     t.setStyle(TableStyle([
@@ -103,10 +103,10 @@ def card(title, rows):
         ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#f7f9fc')),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cfd8e3')),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5)]))
     st.append(t)
-    st.append(Spacer(1, 7))
+    st.append(Spacer(1, 5))
 
 
 def main():
@@ -130,7 +130,7 @@ def main():
             ('你写的', it.get('wrote', ''), ORANGE),
             ('正确方法', it.get('correct', ''), GREEN),
             ('★ 错在哪', it.get('wrong_at', ''), REDC),
-            ('✔ 怎么改', it.get('how_to_fix', ''), GREEN),
+            ('✓ 怎么改', it.get('how_to_fix', ''), GREEN),
             ('本题本质', it.get('essence', ''), DARK),
             ('下一步动作', it.get('next_action', ''), DARK),
         ]
@@ -149,7 +149,7 @@ def main():
         for it in items:
             if not (it.get('detail') or it.get('fig')):
                 continue
-            st.append(Paragraph(it.get('headline', '题 %s' % it.get('no', '?')), h2))
+            st.append(Paragraph(P('<b>%s</b>' % it.get('headline', '题 %s' % it.get('no', '?')), fs=12.5, max_h=20), h2))
             for para in it.get('detail', []):
                 sty = body
                 if para.startswith('【可跳】'):

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""数学试卷排版引擎（真数学排版 + 大字体 + 中文禁则 + 公式行距保护）
-
-独立可用：不依赖任何具体题库/学段。中文字体路径见下方 CN/CNB 注册处，可自行改。
-"""
+"""春考数学提分系统 · 试卷排版引擎（真数学排版 + 大字体 + 公式行距保护）"""
 import os, re, hashlib
 import matplotlib
 matplotlib.use('Agg')
@@ -43,7 +40,7 @@ def mimg(tex, fs=13, max_w=440.0, max_h=None):
     path = f'/tmp/wsm_{key}.png'
     if key not in _CACHE:
         fig = plt.figure(figsize=(0.01, 0.01)); fig.text(0, 0, tex, fontsize=fs)
-        fig.savefig(path, dpi=400, transparent=True, bbox_inches='tight', pad_inches=0.02); plt.close(fig)
+        fig.savefig(path, dpi=DPI, transparent=True, bbox_inches='tight', pad_inches=0.02); plt.close(fig)
         w, h = Image.open(path).size
         w, h = w / 400 * 72, h / 400 * 72
         if max_w and w > max_w:
@@ -54,7 +51,14 @@ def mimg(tex, fs=13, max_w=440.0, max_h=None):
     return _CACHE[key]
 
 def P(s, fs=13, valign=-4, max_w=440.0, max_h=None):
-    """把文本里的 $...$ 换成内联数学图片（超宽/超高自动等比缩小）"""
+    """把文本里的 $...$ 换成内联数学图片（超宽/超高自动等比缩小）
+
+    v4.20（2026-10-19 · 采纳 workbuddy 排版规则 §4.3）：**行内分式禁 \\dfrac**。
+    P() 处理的全部是段落内的行内公式，\\dfrac 竖排可达 34pt 会撑高行距/骑线，
+    或被迫被 max_h 压小（与周围字号不一致）。统一降级为 \\frac。
+    """
+    s = s.replace('\\dfrac', '\\frac')
+
     def rep(m):
         path, w, h = mimg('$' + m.group(1) + '$', fs, max_w, max_h)
         return f'<img src="{path}" width="{w:.1f}" height="{h:.1f}" valign="{valign}"/>'
@@ -464,6 +468,8 @@ PAGE_W = A4[0] - 2 * PAGE_MARGIN_LR          # 版心宽（pt）
 FRAME_PAD = 12.0                                  # SimpleDocTemplate 的 Frame 默认上下各 6pt 内边距（实测）
 AVAIL_H = A4[1] - PAGE_MARGIN_T - PAGE_MARGIN_B - FRAME_PAD   # 真正可排版高度 ≈ 736pt ≈ 260mm
 TEXT_W = PAGE_W - FRAME_PAD      # 真正可排版宽度（Frame 左右各 6pt 内边距，实测）：≈470pt
+
+DPI = 600  # 2026-10-19：公式/图 400→600（今日待办 §三-1；出卷后核体积 ≤500KB）
 
 INK = colors.HexColor('#000000')
 GUIDE = colors.HexColor('#e2e8f0')           # 答题引导线（极浅灰，省墨）

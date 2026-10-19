@@ -4,7 +4,7 @@ description: 把一组数学题目排成可直接打印的试卷 PDF（真数学
 license: MIT
 metadata:
   author: zhaoyijun
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # 数学试卷锻造（math-paper-forge）
@@ -176,3 +176,16 @@ metadata:
 - `scripts/ws.py` —— 排版引擎（中文禁则、行内公式、作答区、分页）
 - `scripts/gate_lib.py` —— 闸门数据层（卷子时间线、结构化数据解析、题干相似度）
 - `scripts/gate_check.py` —— 闸门校验层（六条校验，退出码即判据）
+
+---
+
+## 八、变更记录
+
+### 1.2.0（2026-10-19）
+
+- **行内分式禁 `\dfrac`**：`ws.P()` 内统一降级为 `\frac`（竖排分式 34pt vs 行距 24pt，会骑线或被 `max_h` 压小）。独立大公式走 `mimg`，不受影响。
+- **公式/图 dpi 400 → 600**：`ws.DPI = 600`；出卷后核体积 ≤500KB（答案 PDF 可回降到 400 控体积）。
+- **体积分档**：练习卷/答案 ≤500KB；**详解/订正页不设 500KB 线，≤1.5MB**（详解含大量公式图）。
+- **出稿回归检查**：见 `references/typeset-rules-v419.md` 的 R1–R8 思路，落地脚本为工作区 `check_regression.py`（页数基线/体积/裸 `$`/U+FFFD/页脚页码/填空线/节·题型一致/交付完整性）。
+- **交付完整性（防漏项）**：卷 A/B + 各自答案 + 各自 AI 明文 + 上一日详解（PDF+明文）+ 上一日订正与台阶页（PDF+答案+明文），缺一即未完成。
+- **自检退出码纪律**：禁止 `python x.py | tail` 取 `$?`（拿到的是 tail 的 0）；用 `; echo EXIT=$?` 或脚本自打印 `RESULT: PASS/FAIL`。

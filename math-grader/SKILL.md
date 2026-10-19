@@ -4,7 +4,7 @@ description: 批改学生已作答的数学卷子：先出《辨错确认单》�
 license: MIT
 metadata:
   author: zhaoyijun
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # 数学判卷与详解（math-grader）
@@ -166,3 +166,13 @@ python3 scripts/make_detail.py detail.json 详解_学生版.pdf > log 2>&1; echo
 
 - [`references/grader-rules.md`](references/grader-rules.md) —— 判卷十步、两层错因判据、冻结机制的完整定义与历史事故
 - [`references/detail-rules.md`](references/detail-rules.md) —— 详解排版、第一屏、类比口诀的完整规则
+
+---
+
+## 九、变更记录
+
+### 1.1.0（2026-10-19）
+
+- **详版标题必须走 `P()`**：`make_detail.py` 选读详版（第 3 页起）的标题原为裸 `Paragraph(headline)`，导致 `$\sqrt{3}$`、`$\bar z$` 原样印出（第一屏卡片走 `card()` 不受影响）。现已统一 `P('<b>%s</b>' % headline)`。
+- **出稿硬自检**：生成 PDF 后扫全文，出现字面 `$` 即断言失败、不许出稿（该缺陷曾两次「修完又被还原」，故必须机械拦截）。
+- **正本与同步**：`make_detail.py` 正本存于工作区 `_ssot/`，用 `sync_skills.py` 一键同步并校验（技能目录内容曾被还原成旧版）。
