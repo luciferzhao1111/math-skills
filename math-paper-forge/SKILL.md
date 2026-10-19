@@ -176,6 +176,8 @@ metadata:
 - `scripts/ws.py` —— 排版引擎（中文禁则、行内公式、作答区、分页）
 - `scripts/gate_lib.py` —— 闸门数据层（卷子时间线、结构化数据解析、题干相似度）
 - `scripts/gate_check.py` —— 闸门校验层（六条校验，退出码即判据）
+- `scripts/check_regression.py` —— **出稿回归检查**（R1–R7 + R12 交付完整性 + R14 节·题型一致）；
+  用法 `python3 check_regression.py Day23 --dir <工作区>`，或设 `MATH_SKILLS_WS`；**退出码 0=可交付**
 
 ---
 
