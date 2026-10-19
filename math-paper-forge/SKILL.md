@@ -4,7 +4,7 @@ description: 把一组数学题目排成可直接打印的试卷 PDF（真数学
 license: MIT
 metadata:
   author: zhaoyijun
-  version: 1.2.0
+  version: 1.2.1
 ---
 
 # 数学试卷锻造（math-paper-forge）
