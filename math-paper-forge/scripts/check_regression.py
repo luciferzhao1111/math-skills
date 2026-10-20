@@ -31,6 +31,36 @@ BASE = B + 'papers/regression_baseline.json'
 MAX_KB = 500
 
 
+
+SPEC = [
+ {'id': 'R1', 'rule': '页数不得偏离基线（改引擎后立即报警）', 'thr': '等于基线', 'scope': '两端通用', 'how': 'papers/regression_baseline.json'},
+ {'id': 'R2', 'rule': '练习卷/答案体积', 'thr': '<=500KB', 'scope': '两端通用', 'how': 'os.path.getsize'},
+ {'id': 'R2b', 'rule': '详解/订正页体积', 'thr': '<=1.5MB（不设500KB线）', 'scope': '两端通用', 'how': '文件名含详解/订正时放宽'},
+ {'id': 'R3', 'rule': 'PDF 文本层无字面 $（有=公式没渲染）', 'thr': '=0 行', 'scope': '两端通用', 'how': 'fitz get_text 逐行'},
+ {'id': 'R4', 'rule': '无 U+FFFD / NUL（缺字）', 'thr': '=0', 'scope': '两端通用', 'how': 'str.count'},
+ {'id': 'R5', 'rule': '页脚含「第 X 页 / 共 Y 页」', 'thr': '全部页', 'scope': '两端通用', 'how': '逐页取尾部文本'},
+ {'id': 'R6', 'rule': '卷面存在填空横线（答案文件豁免）', 'thr': '>=3 条', 'scope': '两端通用', 'how': '统计全角下划线'},
+ {'id': 'R7', 'rule': '无 Math input error / HTML 吞字残留', 'thr': '=0', 'scope': '两端通用', 'how': '关键词计数'},
+ {'id': 'R12', 'rule': '交付完整性（卷A/B+答案+明文+上一日详解+上一日订正台阶页）', 'thr': '缺一即红', 'scope': '两端通用', 'how': '文件名清单存在性'},
+ {'id': 'R14', 'rule': '节·题型一致（填空节内无 A．B．C．D．）', 'thr': '=0', 'scope': '两端通用', 'how': '按节切段后查选项字符'},
+ {'id': 'R24', 'rule': '解答题：必须有锚、锚不得落在填/选、分值>=10', 'thr': '违反即红', 'scope': '两端通用', 'how': 'papers/*.json 的 kind/src/pts'},
+ {'id': 'R26', 'rule': '答案页必须含《解答题溯源表》/《母题—变式登记表》', 'thr': '出现即过', 'scope': '两端通用', 'how': '答案 PDF 文本查关键词'},
+ {'id': 'D1', 'rule': '密度①整卷平均分值密度', 'thr': '>=20 分/页', 'scope': '两端通用', 'how': '满分/页数'},
+ {'id': 'D2', 'rule': '密度②整卷平均题密度（解答题页豁免）', 'thr': '>=4 题/页', 'scope': '两端通用', 'how': '题数/页数'},
+]
+
+
+def emit_spec(path=None):
+    import json as _j
+    out = path or (B + 'papers/regression_spec.json')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    _j.dump({'version': 'v4.21', 'items': SPEC}, open(out, 'w', encoding='utf-8'),
+            ensure_ascii=False, indent=1)
+    print('判据清单 ->', out, '（%d 条）' % len(SPEC))
+    for s in SPEC:
+        print('  %-4s [%s] %s' % (s['id'], s['scope'], s['rule']))
+
+
 def papers():
     if '--all' in sys.argv:
         return sorted(glob.glob(B + 'Day*.pdf'))
@@ -108,13 +138,46 @@ def section_kind_ok(path):
     return bad
 
 
+
+def r24_r26(day):
+    """R24 解答题锚/分值；R26 答案页须含溯源表。"""
+    import json as _j
+    bad = []
+    for tag in ('A', 'B'):
+        jp = B + 'papers/D%d%s.json' % (day, tag)
+        if not os.path.exists(jp):
+            continue
+        d = _j.load(open(jp, encoding='utf-8'))
+        for no, it in d.get('items', {}).items():
+            kind, src, pts = it.get('kind'), it.get('src', ''), it.get('pts')
+            if kind is None:
+                continue   # 老卷无字段，跳过（不回改）
+            if kind == 'solve':
+                if not src or '—' == src.strip():
+                    bad.append('R24 题%s 解答题无锚' % no)
+                elif ('·填' in src or '·选' in src) and '升格' not in it.get('op', '') + src:
+                    bad.append('R24 题%s 解答题锚落在填/选且未标升格' % no)
+                if pts is not None and int(pts) < 10:
+                    bad.append('R24 题%s 解答题分值 %s <10' % (no, pts))
+    ap = B + 'Day%d练习卷A（覆盖卷）_答案-ima.pdf' % day
+    if os.path.exists(ap):
+        t = '\n'.join(p.get_text() for p in fitz.open(ap))
+        if ('溯源表' not in t) and ('变式登记表' not in t):
+            bad.append('R26 答案页缺《解答题溯源表》')
+    return bad
+
+
 def main():
+    if '--emit-spec' in sys.argv:
+        emit_spec(); return 0
     bad0 = 0
     for a in sys.argv[1:]:
         dd = None
         if a.startswith('D') and a[1:].isdigit(): dd = int(a[1:])
         elif a.startswith('Day') and a[3:].isdigit(): dd = int(a[3:])
         if dd:
+            for x in r24_r26(dd):
+                print('  %s ❌' % x); bad0 += 1
             miss = delivery(dd)
             print('R12 交付完整性 D%d：%s' % (dd, '齐全 ✅' if not miss else '缺 ' + '、'.join(miss) + ' ❌'))
             if miss: bad0 += 1
