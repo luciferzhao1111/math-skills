@@ -9,6 +9,8 @@
   2. **空白页**（多于 1 页时，某页文本过少）
   3. **缺字**：把 PDF 文本里的中文逐字去字体 cmap 里查，缺哪个报哪个
      （比"渲染成图用眼睛看"可靠 —— 缺字会渲染成方框，但文本层看不出）
+  4. **答案词**（仅当加 `--forbid-answer`）：题目版件（卷面/订正页/单练）
+     的文本层出现「答案：/正解/解析」即判失败 —— 详解是唯一允许带答案的件
 
 退出码：0 = 未发现问题；1 = 发现问题（含缺字 / 空白页）。
 """
@@ -43,8 +45,11 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
-    pdf = sys.argv[1]
-    fonts = sys.argv[2:] or DEFAULT_FONTS
+    argv = sys.argv[1:]
+    forbid = '--forbid-answer' in argv
+    argv = [a for a in argv if a != '--forbid-answer']
+    pdf = argv[0]
+    fonts = argv[1:] or DEFAULT_FONTS
     cov = cmap_cover(fonts)
     doc = fitz.open(pdf)
     problems = []
@@ -64,9 +69,15 @@ def main():
     else:
         miss = {}
         for i, pg in enumerate(doc):
-            for ch in pg.get_text():
-                # 只关心 CJK 区，拉丁字母/数字由 Helvetica 兜底
-                if ord(ch) > 0x2E80 and ord(ch) not in cov:
+            t = pg.get_text()
+            # 缺字形信号①：reportlab 把缺字形写成 NUL
+            if '\x00' in t:
+                problems.append('第 %d 页含 NUL 字符（= 字体缺字形，会印成方块）' % (i + 1))
+            for ch in t:
+                o = ord(ch)
+                if o < 0x80 or 0x2000 <= o <= 0x200F:
+                    continue      # ASCII 由 Helvetica 兜底；零宽/方向控制符跳过
+                if o not in cov:
                     miss.setdefault(ch, i + 1)
         if miss:
             for ch, p in miss.items():
@@ -74,6 +85,18 @@ def main():
             print('❌ 缺字 %d 个' % len(miss))
         else:
             print('✅ 无缺字')
+
+    # ---- 4. 答案词（题目版件必须 0 处；详解跑本项时应不加 --forbid-answer）----
+    if forbid:
+        full = ''.join(pg.get_text() for pg in doc)
+        hits = {w: full.count(w) for w in ('答案：', '答案:', '正解', '解析') if full.count(w)}
+        if hits:
+            problems.append('题目版件出现答案词：' + '、'.join('%s×%d' % (k, v) for k, v in hits.items()))
+            print('❌ 出现答案词', hits)
+        else:
+            print('✅ 无答案词（题目版件要求）')
+    else:
+        print('· 答案词：未查（未加 --forbid-answer；详解件应保持不加）')
 
     if problems:
         print('\n发现问题：')
